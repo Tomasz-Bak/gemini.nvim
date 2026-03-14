@@ -84,19 +84,35 @@ M.is_blacklisted = function(blacklist, filetype)
 end
 
 M.strip_code = function(text)
-  local code_blocks = {}
-  if not text then
-    return code_blocks
+  if not text or text == "" then
+    return {}
   end
 
-  local pattern = "```(%w+)%s*(.-)%s*```"
-  for _, code_block in text:gmatch(pattern) do
-    table.insert(code_blocks, code_block)
+  local all_lines = vim.split(text, "\n")
+  local result_lines = {}
+  local in_code_block = false
+  local found_any_block = false
+
+  for _, line in ipairs(all_lines) do
+    -- Detect the start or end of a code block
+    if line:match("^%s*```") then
+      in_code_block = not in_code_block
+      found_any_block = true
+    else
+      -- Only collect lines that are inside a triple-backtick block
+      if in_code_block then
+        table.insert(result_lines, line)
+      end
+    end
   end
-  if #code_blocks == 0 then
-    return { text }
+
+  -- Fallback: If no code blocks were found, return the original text split into lines.
+  -- This handles cases where the model returns raw code without markdown formatting.
+  if not found_any_block or #result_lines == 0 then
+    return all_lines
   end
-  return code_blocks
+
+  return result_lines
 end
 
 return M
