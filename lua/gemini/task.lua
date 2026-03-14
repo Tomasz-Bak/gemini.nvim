@@ -38,6 +38,7 @@ local get_prompt_text = function(bufnr, user_prompt)
 end
 
 local function open_file_in_split(filepath, ft)
+  local cur_win = vim.api.nvim_get_current_win()
   local bufnr = vim.fn.bufnr(filepath, true)
   if bufnr == 0 then
     print("Error: Could not find or create buffer for file: " .. filepath)
@@ -51,6 +52,7 @@ local function open_file_in_split(filepath, ft)
   })
   vim.api.nvim_set_current_win(win_id)
 
+  vim.api.nvim_set_option_value('diff', true, { win = cur_win })
   vim.api.nvim_set_option_value('diff', true, { win = win_id })
   vim.api.nvim_set_option_value('scrollbind', true, { win = win_id })
   vim.api.nvim_set_option_value('cursorbind', true, { win = win_id })
@@ -86,23 +88,53 @@ M.run_task = function(ctx)
   print('-- running Gemini Task...')
   local generation_config = config.get_gemini_generation_config('task')
   local model_id = config.get_config({ 'task', 'model', 'model_id' })
-  api.gemini_generate_content(prompt, system_text, model_id, generation_config, function(result)
-    local json_text = result.stdout
-    if json_text and #json_text > 0 then
-      local model_response = vim.json.decode(json_text)
-      model_response = util.table_get(model_response, { 'candidates', 1, 'content', 'parts', 1, 'text' })
-      if model_response ~= nil and #model_response > 0 then
-        model_response = util.strip_code(model_response)
-        vim.schedule(function()
-          model_response = vim.fn.join(model_response, '\n')
-          if #model_response then
-            context.bufnr = bufnr
-            context.model_response = model_response
-            context.tmpfile = diff_with_current_file(bufnr, model_response)
-          end
-        end)
+
+  local tmpfile = vim.fn.tempname()
+  local ft = vim.api.nvim_get_option_value('filetype', { buf = bufnr })
+  open_file_in_split(vim.fn.fnameescape(tmpfile), ft)
+  local tmp_bufnr = vim.api.nvim_get_current_buf()
+
+  context.bufnr = bufnr
+  context.tmpfile = tmpfile
+
+  local full_thought = ""
+  local full_text = ""
+
+  api.gemini_generate_content_stream(prompt, model_id, generation_config, function(json_text)
+    local ok, model_response = pcall(vim.json.decode, json_text)
+    if not ok then return end
+
+    local parts = util.table_get(model_response, { 'candidates', 1, 'content', 'parts' })
+    if not parts then return end
+
+    for _, part in ipairs(parts) do
+      if part.thought then
+        full_thought = full_thought .. part.text
+      elseif part.text then
+        full_text = full_text .. part.text
       end
     end
+
+    vim.schedule(function()
+      local output = {}
+      if #full_thought > 0 then
+        table.insert(output, "> [Thinking]")
+        for _, line in ipairs(vim.split(full_thought, "\n")) do
+          table.insert(output, "> " .. line)
+        end
+        table.insert(output, "")
+      end
+      for _, line in ipairs(vim.split(full_text, "\n")) do
+        table.insert(output, line)
+      end
+      vim.api.nvim_buf_set_lines(tmp_bufnr, 0, -1, false, output)
+    end)
+  end, system_text, function()
+    vim.schedule(function()
+      -- Once finished, strip markdown and thoughts for a clean diff/apply
+      local cleaned = util.strip_code(full_text)
+      vim.api.nvim_buf_set_lines(tmp_bufnr, 0, -1, false, cleaned)
+    end)
   end)
 end
 

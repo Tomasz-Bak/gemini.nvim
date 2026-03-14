@@ -65,7 +65,7 @@ M.gemini_generate_content = function(user_text, system_text, model_name, generat
   end
 end
 
-M.gemini_generate_content_stream = function(user_text, model_name, generation_config, callback)
+M.gemini_generate_content_stream = function(user_text, model_name, generation_config, callback, system_text, on_finish)
   local api_key = os.getenv("GEMINI_API_KEY")
   if not api_key then
     vim.notify("GEMINI_API_KEY not found in environment", vim.log.levels.ERROR)
@@ -90,6 +90,15 @@ M.gemini_generate_content_stream = function(user_text, model_name, generation_co
     },
     generationConfig = generation_config,
   }
+  if system_text then
+    data.systemInstruction = {
+      parts = {
+        {
+          text = system_text,
+        }
+      }
+    }
+  end
   local json_text = vim.json.encode(data)
 
   local stdin = uv.new_pipe()
@@ -100,8 +109,10 @@ M.gemini_generate_content_stream = function(user_text, model_name, generation_co
     args = { api, '-X', 'POST', '-s', '-H', 'Content-Type: application/json', '-d', json_text }
   }
 
-  uv.spawn('curl', options, function(code, _)
-    print("gemini chat finished exit code", code)
+  uv.spawn('curl', options, function(code, signal)
+    if on_finish then
+      on_finish(code, signal)
+    end
   end)
 
   -- Capture stderr for debugging

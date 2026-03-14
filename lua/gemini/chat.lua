@@ -10,12 +10,6 @@ M.setup = function()
     return
   end
 
-  vim.api.nvim_create_user_command('GeminiChat', M.start_chat, {
-    force = true,
-    desc = 'Google Gemini',
-    nargs = 1,
-  })
-
   vim.api.nvim_create_user_command('Gemini', function()
     M.open_chat_gui()
   end, {
@@ -61,6 +55,18 @@ M.open_chat_gui = function()
     out_win = out_win,
     in_win = in_win,
   }
+
+  -- Automatically close the output window when the input window is closed
+  vim.api.nvim_create_autocmd('WinClosed', {
+    pattern = tostring(in_win),
+    callback = function()
+      if context.gui.out_win and vim.api.nvim_win_is_valid(context.gui.out_win) then
+        pcall(vim.api.nvim_win_close, context.gui.out_win, true)
+      end
+      context.gui = { out_buf = nil, in_buf = nil, out_win = nil, in_win = nil }
+    end,
+    once = true,
+  })
 
   -- Keymap for sending message
   vim.keymap.set('n', '<CR>', function() M.send_gui_message() end, { buffer = in_buf, silent = true })
