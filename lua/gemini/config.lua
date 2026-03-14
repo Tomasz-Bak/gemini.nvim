@@ -144,14 +144,27 @@ local default_task_config = {
   end
 }
 
+local default_hints_config = {
+  enabled = true,
+  hints_delay = 2000,
+  insert_result_key = '<S-Tab>',
+  get_prompt = function(node, bufnr)
+    -- Default implementation...
+    return ""
+  end
+}
+
 M.set_config = function(opts)
   opts = opts or {}
+  -- Allow a top-level model_config to act as a base for all modules if desired,
+  -- or simply ensure all documented keys are merged.
 
   M.config = {
     chat = vim.tbl_deep_extend('force', {}, default_chat_config, opts.chat_config or {}),
     completion = vim.tbl_deep_extend('force', {}, default_completion_config, opts.completion or {}),
     instruction = vim.tbl_deep_extend('force', {}, default_instruction_config, opts.instruction or {}),
-    task = vim.tbl_deep_extend('force', {}, default_task_config, opts.task or {})
+    task = vim.tbl_deep_extend('force', {}, default_task_config, opts.task or {}),
+    hints = vim.tbl_deep_extend('force', {}, default_hints_config, opts.hints or {}),
   }
 end
 
@@ -165,7 +178,7 @@ M.get_gemini_generation_config = function(space)
     topK = M.get_config({ space, 'model', 'top_k' }) or default_top_k,
     response_mime_type = 'text/plain',
     thinkingConfig = {
-      thinkingBudget = 0
+      thinkingBudget = 16000
     }
   }
 end

@@ -19,7 +19,7 @@ export GEMINI_API_KEY="<your API key here>"
 lazy.nvim:
 
 {
-  'kiddos/gemini.nvim',
+  'gherd/gemini.nvim',
   opts = {}
 }
 
@@ -30,7 +30,7 @@ CONFIGURATION                                    *gemini.nvim-config*
 {
   model_config = {
     completion_delay = 1000,
-    model_id = api.MODELS.GEMINI_2_0_FLASH,
+    model_id = api.MODELS.GEMINI_2_5_FLASH,
     temperature = 0.2,
     top_k = 20,
     max_output_tokens = 8196,

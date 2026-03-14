@@ -5,12 +5,23 @@ local M = {}
 local API = "https://generativelanguage.googleapis.com/v1beta/models/";
 
 M.MODELS = {
-  GEMINI_FLASH_LATEST = 'gemini-flash-latest',
+  GEMINI_3_1_PRO_PREVIEW = 'gemini-3.1-pro-preview',
+  GEMINI_3_1_FLASH_LITE_PREVIEW = 'gemini-3.1-flash-lite-preview',
+  GEMINI_3_PRO_PREVIEW = 'gemini-3-pro-preview',
+  GEMINI_3_FLASH_PREVIEW = 'gemini-3-flash-preview',
   GEMINI_2_5_PRO = 'gemini-2.5-pro',
   GEMINI_2_5_FLASH = 'gemini-2.5-flash',
   GEMINI_2_5_FLASH_LITE = 'gemini-2.5-flash-lite',
   GEMINI_2_0_FLASH = 'gemini-2.0-flash',
   GEMINI_2_0_FLASH_LITE = 'gemini-2.0-flash-lite',
+  GEMINI_PRO_LATEST = 'gemini-pro-latest',
+  GEMINI_FLASH_LATEST = 'gemini-flash-latest',
+  GEMINI_FLASH_LITE_LATEST = 'gemini-flash-lite-latest',
+  GEMMA_3_27B = 'gemma-3-27b-it',
+  GEMMA_3_12B = 'gemma-3-12b-it',
+  GEMMA_3_4B = 'gemma-3-4b-it',
+  GEMMA_3_1B = 'gemma-3-1b-it',
+  DEEP_RESEARCH_PRO_PREVIEW = 'deep-research-pro-preview-12-2025',
 }
 
 M.gemini_generate_content = function(user_text, system_text, model_name, generation_config, callback)
