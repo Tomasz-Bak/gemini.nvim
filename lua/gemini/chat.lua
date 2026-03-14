@@ -95,7 +95,12 @@ M.send_gui_message = function()
 
   api.gemini_generate_content_stream(user_text, model_id, generation_config, function(json_text)
     local ok, model_response = pcall(vim.json.decode, json_text)
-    if not ok then return end
+    if not ok then 
+      vim.schedule(function()
+        vim.notify("Failed to decode JSON: " .. tostring(json_text), vim.log.levels.DEBUG)
+      end)
+      return 
+    end
     
     local parts = util.table_get(model_response, { 'candidates', 1, 'content', 'parts' })
     if not parts then return end

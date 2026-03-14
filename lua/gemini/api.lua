@@ -27,6 +27,7 @@ M.MODELS = {
 M.gemini_generate_content = function(user_text, system_text, model_name, generation_config, callback)
   local api_key = os.getenv("GEMINI_API_KEY")
   if not api_key then
+    vim.notify("GEMINI_API_KEY not found in environment", vim.log.levels.ERROR)
     return ''
   end
 
@@ -67,12 +68,14 @@ end
 M.gemini_generate_content_stream = function(user_text, model_name, generation_config, callback)
   local api_key = os.getenv("GEMINI_API_KEY")
   if not api_key then
+    vim.notify("GEMINI_API_KEY not found in environment", vim.log.levels.ERROR)
     return
   end
 
   if not callback then
     return
   end
+  print("-- calling gemini stream api --")
 
   local api = API .. model_name .. ':streamGenerateContent?alt=sse&key=' .. api_key
   local data = {
@@ -101,22 +104,39 @@ M.gemini_generate_content_stream = function(user_text, model_name, generation_co
     print("gemini chat finished exit code", code)
   end)
 
+  -- Capture stderr for debugging
+  uv.read_start(stderr, function(err, data)
+    if not err and data then
+      vim.schedule(function()
+        vim.notify("Gemini API Error (stderr): " .. data, vim.log.levels.ERROR)
+      end)
+    end
+  end)
+
   local streamed_data = ''
   uv.read_start(stdout, function(err, data)
     if not err and data then
       streamed_data = streamed_data .. data
 
-      local start_index = string.find(streamed_data, 'data:')
-      local end_index = string.find(streamed_data, '\r')
-      local json_text = ''
-      while start_index and end_index do
-        if end_index >= start_index then
-          json_text = string.sub(streamed_data, start_index + 5, end_index - 1)
+      -- SSE logic: split by newline, handle data: prefix
+      while true do
+        local start_index = string.find(streamed_data, 'data:')
+        if not start_index then 
+          -- If we have data but no "data:" prefix, it might be a raw JSON error
+          if #streamed_data > 0 and not string.find(streamed_data, "^{") then
+            break 
+          end
+        end
+        
+        local end_index = string.find(streamed_data, '\n', start_index)
+        if not end_index then break end
+
+        local json_text = string.sub(streamed_data, (start_index or 0) + 5, end_index - 1)
+        -- Basic validation before callback
+        if json_text:match("^%s*{") then
           callback(json_text)
         end
         streamed_data = string.sub(streamed_data, end_index + 1)
-        start_index = string.find(streamed_data, 'data:')
-        end_index = string.find(streamed_data, '\r')
       end
     end
   end)
