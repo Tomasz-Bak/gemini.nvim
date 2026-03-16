@@ -75,7 +75,6 @@ M.gemini_generate_content_stream = function(user_text, model_name, generation_co
   if not callback then
     return
   end
-  print("-- calling gemini stream api --")
 
   local api = API .. model_name .. ':streamGenerateContent?alt=sse&key=' .. api_key
   local data = {

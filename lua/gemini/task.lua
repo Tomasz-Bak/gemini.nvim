@@ -41,7 +41,7 @@ local function open_file_in_split(filepath, ft)
   local cur_win = vim.api.nvim_get_current_win()
   local bufnr = vim.fn.bufnr(filepath, true)
   if bufnr == 0 then
-    print("Error: Could not find or create buffer for file: " .. filepath)
+    vim.notify("Error: Could not find or create buffer for file: " .. filepath, vim.log.levels.ERROR, { title = 'Gemini' })
     return
   end
   vim.api.nvim_set_option_value('filetype', ft, {buf = bufnr})
@@ -85,7 +85,7 @@ M.run_task = function(ctx)
     system_text = get_system_text()
   end
 
-  print('-- running Gemini Task...')
+  vim.notify('Running Gemini Task...', vim.log.levels.INFO, { title = 'Gemini' })
   local generation_config = config.get_gemini_generation_config('task')
   local model_id = config.get_config({ 'task', 'model', 'model_id' })
 
@@ -131,9 +131,7 @@ M.run_task = function(ctx)
     end)
   end, system_text, function()
     vim.schedule(function()
-      -- Once finished, strip markdown and thoughts for a clean diff/apply
-      local cleaned = util.strip_code(full_text)
-      vim.api.nvim_buf_set_lines(tmp_bufnr, 0, -1, false, cleaned)
+      vim.notify('Gemini Task finished. Review the full response.', vim.log.levels.INFO, { title = 'Gemini' })
     end)
   end)
 end
@@ -142,7 +140,7 @@ local function close_split_by_filename(tmpfile)
   -- Get the buffer number for the temp file
   local bufnr = vim.fn.bufnr(tmpfile)
   if bufnr == -1 then
-    print("No buffer found for file: " .. tmpfile)
+    vim.notify("No buffer found for file: " .. tmpfile, vim.log.levels.WARN, { title = 'Gemini' })
     return
   end
 
@@ -154,7 +152,7 @@ local function close_split_by_filename(tmpfile)
       return
     end
   end
-  print("No window found showing the buffer for file: " .. tmpfile)
+  vim.notify("No window found showing the buffer for file: " .. tmpfile, vim.log.levels.WARN, { title = 'Gemini' })
 end
 
 M.apply_patch = function()
@@ -163,7 +161,7 @@ M.apply_patch = function()
     return
   end
 
-  print('-- apply changes from Gemini')
+  vim.notify('Applying changes from Gemini...', vim.log.levels.INFO, { title = 'Gemini' })
 
   local tmp_bufnr = vim.fn.bufnr(vim.fn.fnamemodify(context.tmpfile, ':p'))
   if tmp_bufnr == -1 then
@@ -171,9 +169,10 @@ M.apply_patch = function()
     return
   end
 
-  local edited_lines = vim.api.nvim_buf_get_lines(tmp_bufnr, 0, -1, false)
+  local edited_lines_raw = vim.api.nvim_buf_get_lines(tmp_bufnr, 0, -1, false)
+  local cleaned_lines = util.strip_code(edited_lines_raw)
 
-  vim.api.nvim_buf_set_lines(context.bufnr, 0, -1, false, edited_lines)
+  vim.api.nvim_buf_set_lines(context.bufnr, 0, -1, false, cleaned_lines)
 
   if context.tmpfile then
     close_split_by_filename(context.tmpfile)

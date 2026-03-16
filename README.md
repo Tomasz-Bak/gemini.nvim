@@ -1,3 +1,4 @@
+```markdown
 # gemini.nvim
 
 This plugin try to interface Google's Gemini API into neovim.
@@ -24,11 +25,22 @@ sudo apt install curl
 export GEMINI_API_KEY="<your API key here>"
 ```
 
+* [packer.nvim](https://github.com/wbthomason/packer.nvim)
+
+```lua
+use {
+  'Tomasz-bak/gemini.nvim',
+  config = function()
+    require('gemini').setup({})
+  end
+}
+```
+
 * [lazy.nvim](https://github.com/folke/lazy.nvim)
 
 ```lua
 {
-  'gherd/gemini.nvim',
+  'Tomasz-bak/gemini.nvim',
   opts = {}
 }
 ```
@@ -99,7 +111,7 @@ default setting
       end
       local code = vim.fn.join(lines, '\n')
       local abs_path = vim.api.nvim_buf_get_name(bufnr)
-      local filename = vim.fn.fnamemodify(abs_path, ':.')
+      local filename = vim.fn.fnamodify(abs_path, ':.')
       prompt = string.format(prompt, filetype, filename, filetype, code)
       return prompt
     end
@@ -162,7 +174,7 @@ default setting
         if vim.api.nvim_buf_is_loaded(b) then -- Only get content from loaded buffers
           local lines = vim.api.nvim_buf_get_lines(b, 0, -1, false)
           local abs_path = vim.api.nvim_buf_get_name(b)
-          local filename = vim.fn.fnamemodify(abs_path, ':.')
+          local filename = vim.fn.fnamodify(abs_path, ':.')
           local filetype = vim.api.nvim_get_option_value('filetype', { buf = b })
           local file_content = table.concat(lines, "\n")
           file_content = string.format("`%s`:\n\n```%s\n%s\n```\n\n", filename, filetype, file_content)
@@ -171,7 +183,7 @@ default setting
       end
 
       local current_filepath = vim.api.nvim_buf_get_name(bufnr)
-      current_filepath = vim.fn.fnamemodify(current_filepath, ":.")
+      current_filepath = vim.fn.fnamodify(current_filepath, ":.")
 
       local context = table.concat(file_contents, "\n\n")
       return string.format('%s\n\nCurrent Opened File: %s\n\nTask: %s',
